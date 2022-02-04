@@ -11,7 +11,7 @@ resource "aws_launch_configuration" "example" {
     db_port = data.terraform_remote_state.db.outputs.port
     }))
 */
-
+/*
   user_data = <<EOF
   #!/bin/bash
   echo "Hello, World" >> index.html
@@ -19,7 +19,7 @@ resource "aws_launch_configuration" "example" {
   echo "${data.terraform_remote_state.db.outputs.port}" >> index.html
   nohup busybox httpd -f -p ${var.server_port} &
   EOF
-
+*/
   # Required when using a launch configuration with an auto scaling group.
   # https://www.terraform.io/docs/providers/aws/r/launch_configuration.html
   lifecycle {
