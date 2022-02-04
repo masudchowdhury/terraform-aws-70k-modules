@@ -11,7 +11,7 @@ resource "aws_launch_configuration" "example" {
     db_port = data.terraform_remote_state.db.outputs.port
     }))
 */
-
+  /*
   user_data = <<EOF
   #!/bin/bash
   echo "Hello, World" >> index.html
@@ -19,7 +19,7 @@ resource "aws_launch_configuration" "example" {
   echo "${data.terraform_remote_state.db.outputs.port}" >> index.html
   nohup busybox httpd -f -p ${var.server_port} &
   EOF
-
+*/
   # Required when using a launch configuration with an auto scaling group.
   # https://www.terraform.io/docs/providers/aws/r/launch_configuration.html
   lifecycle {
@@ -41,6 +41,16 @@ resource "aws_autoscaling_group" "example" {
     key                 = "Name"
     value               = var.cluster_name
     propagate_at_launch = true
+  }
+
+  dynamic "tag" {
+    for_each = var.custom_tags
+
+    content {
+      key                 = tag.key
+      value               = tag.value
+      propagate_at_launch = true
+    }
   }
 }
 
@@ -106,14 +116,14 @@ resource "aws_security_group" "instance" {
 }
 
 resource "aws_security_group_rule" "allow_server_http_inbound" {
-  type = "ingress"
+  type              = "ingress"
   security_group_id = aws_security_group.instance.id
 
   from_port   = var.server_port
-  to_port     = var.server_port    
+  to_port     = var.server_port
   protocol    = local.tcp_protocol
   cidr_blocks = local.all_ips
-  
+
 }
 
 resource "aws_security_group" "alb" {
@@ -121,7 +131,7 @@ resource "aws_security_group" "alb" {
 }
 
 resource "aws_security_group_rule" "allow_http_inbound" {
-  type = "ingress"
+  type              = "ingress"
   security_group_id = aws_security_group.alb.id
 
   from_port   = local.http_port
@@ -131,7 +141,7 @@ resource "aws_security_group_rule" "allow_http_inbound" {
 }
 
 resource "aws_security_group_rule" "allow_all_outbound" {
-  type = "egress"
+  type              = "egress"
   security_group_id = aws_security_group.alb.id
 
   from_port   = local.any_port
