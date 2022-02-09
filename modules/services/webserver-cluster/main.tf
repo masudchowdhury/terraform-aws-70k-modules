@@ -76,46 +76,6 @@ resource "aws_autoscaling_schedule" "scale_in_at_night" {
   autoscaling_group_name = aws_autoscaling_group.example.name
 }
 
-resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
-  alarm_name  = "${var.cluster_name}-high-cpu-utilization"
-  namespace   = "AWS/EC2"
-  metric_name = "CPUUtilization"
-
-  dimensions = {
-    AutoScalingGroupName = aws_autoscaling_group.example.name
-  }
-
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = 1
-  period              = 300
-  statistic           = "Average"
-  threshold           = 90
-  unit                = "Percent"
-}
-
-/* CPU credtis apply to tXXX Instances (e.g. t2.micro, t2.medium, etc.). So, larger instance types (e.g. m4.large) don't report a CPUCreditBalacne metric, 
-   therefore if we create such an alarm for thoose instances, the alarm will always be stuck in the INSUFFICIENT_DATA state.
-   So, lets create a conditional statement that only creates this resource on any var.instance_type that starts with "t"
-*/
-resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
-  count = format("%.1s", var.instance_type) == "t" ? 1 : 0 // use format function to extract just the first character from var.instance_type, if "t" create resource
-
-  alarm_name = "${var.cluster_name}-low-cpu-credit-balance"
-  namespace   = "AWS/EC2"
-  metric_name = "CPUCreditBalance"
-
-  dimensions = {
-    AutoScalingGroupName = aws_autoscaling_group.example.name
-  }
-
-  comparison_operator = "LessThanThreshold"
-  evaluation_periods  = 1
-  period              = 300
-  statistic           = "Minimum"
-  threshold           = 10
-  unit                = "Count"
-}
-
 resource "aws_lb" "example" {
   name               = var.cluster_name
   load_balancer_type = "application"
@@ -228,6 +188,46 @@ data "aws_vpc" "default" {
 
 data "aws_subnet_ids" "default" {
   vpc_id = data.aws_vpc.default.id
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
+  alarm_name  = "${var.cluster_name}-high-cpu-utilization"
+  namespace   = "AWS/EC2"
+  metric_name = "CPUUtilization"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Average"
+  threshold           = 90
+  unit                = "Percent"
+}
+
+/* CPU credtis apply to tXXX Instances (e.g. t2.micro, t2.medium, etc.). So, larger instance types (e.g. m4.large) don't report a CPUCreditBalacne metric, 
+   therefore if we create such an alarm for thoose instances, the alarm will always be stuck in the INSUFFICIENT_DATA state.
+   So, lets create a conditional statement that only creates this resource on any var.instance_type that starts with "t"
+*/
+resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
+  count = format("%.1s", var.instance_type) == "t" ? 1 : 0 // use format function to extract just the first character from var.instance_type, if "t" create resource
+
+  alarm_name = "${var.cluster_name}-low-cpu-credit-balance"
+  namespace   = "AWS/EC2"
+  metric_name = "CPUCreditBalance"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Minimum"
+  threshold           = 10
+  unit                = "Count"
 }
 
 locals {
