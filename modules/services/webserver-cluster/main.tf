@@ -54,6 +54,68 @@ resource "aws_autoscaling_group" "example" {
   }
 }
 
+resource "aws_autoscaling_schedule" "scale_out_during_business_hours" {
+  count = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name = "scale-out-during-business-hours"
+  min_size              = 2
+  max_size              = 5
+  desired_capacity      = 4
+  recurrence            = "0 9 * * *"
+
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
+
+resource "aws_autoscaling_schedule" "scale_in_at_night" {
+  count = var.enable_autoscaling ? 1 : 0
+  scheduled_action_name = "scale-in-at-night"
+  min_size              = 2
+  max_size              = 2
+  desired_capacity      = 2
+  recurrence            = "0 17 * * *"
+
+  autoscaling_group_name = module.webserver_cluster.asg_name
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_cpu_utilization" {
+  alarm_name  = "${var.cluster_name}-high-cpu-utilization"
+  namespace   = "AWS/EC2"
+  metric_name = "CPUUtilization"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Average"
+  threshold           = 90
+  unit                = "Percent"
+}
+
+/* CPU credtis apply to tXXX Instances (e.g. t2.micro, t2.medium, etc.). So, larger instance types (e.g. m4.large) don't report a CPUCreditBalacne metric, 
+   therefore if we create such an alarm for thoose instances, the alarm will always be stuck in the INSUFFICIENT_DATA state.
+   So, lets create a conditional statement that only creates this resource on any var.instance_type that starts with "t"
+*/
+resource "aws_cloudwatch_metric_alarm" "low_cpu_credit_balance" {
+  count = format("%.1s", var.instance_type) == "t" ? 1 : 0 // use format function to extract just the first character from var.instance_type, if "t" create resource
+
+  alarm_name = "${var.cluster_name}-low-cpu-credit-balance"
+  namespace   = "AWS/EC2"
+  metric_name = "CPUCreditBalance"
+
+  dimensions = {
+    AutoScalingGroupName = aws_autoscaling_group.example.name
+  }
+
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  period              = 300
+  statistic           = "Minimum"
+  threshold           = 10
+  unit                = "Count"
+}
+
 resource "aws_lb" "example" {
   name               = var.cluster_name
   load_balancer_type = "application"
