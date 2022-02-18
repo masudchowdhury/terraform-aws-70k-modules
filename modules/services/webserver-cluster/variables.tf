@@ -1,3 +1,15 @@
+variable "ami" {
+  description = "The AMI to run in the cluster"
+  default     = "ami-0c55b159cbfafe1f0"
+  type        = string
+}
+
+variable "server_text" {
+  description = "The text the web server should return"
+  default     = "Hello, World"
+  type        = string
+}
+
 variable "server_port" {
   description = "The port the server will use for HTTP requests"
   type        = number
