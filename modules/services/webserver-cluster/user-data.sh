@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 cat > index.html <<EOF
 <h1>Hello, World</h1>
